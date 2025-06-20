@@ -1,0 +1,93 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2406                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      topoSetDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+actions
+(
+    // Refine Section CellSet creation - equal to 1st AD
+    {
+        name    refineSection;
+        type    cellSet;
+        action  new;
+        source  cylinderToCell;
+        sourceInfo
+        {
+        p1  (585 567.0 567.0);
+        p2  (675 567.0 567.0);
+        radius  70;
+        }
+    }
+
+    // actuationDisk1
+    {
+        name    actuationDisk1;
+        type    cellSet;
+        action  new;
+        source  cylinderToCell;
+
+        sourceInfo
+        {
+        p1  (585 567.0 567.0);
+        p2  (675 567.0 567.0);
+        radius  70;
+        }
+    }
+
+    {
+        name    refineSection;
+        type    cellSet;
+        action  add;
+        source  cylinderToCell;
+        sourceInfo
+        {
+        p1  (585 567.0 567.0);
+        p2  (675 567.0 567.0);
+        radius  70;
+        }
+    }
+
+
+    // actuationDisk2
+    {
+        name    actuationDisk2;
+        type    cellSet;
+        action  new;
+        source  cylinderToCell;
+
+        sourceInfo
+        {
+        p1  (1593 630.0 567.0);
+        p2  (1683 630.0 567.0);
+        radius  70;
+        }
+    }
+
+    {
+        name    refineSection;
+        type    cellSet;
+        action  add;
+        source  cylinderToCell;
+        sourceInfo
+        {
+        p1  (1593 630.0 567.0);
+        p2  (1683 630.0 567.0);
+        radius  70;
+        }
+    }
+
+);
+
+// ************************************************************************* //

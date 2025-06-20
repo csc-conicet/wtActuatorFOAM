@@ -1,0 +1,49 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2406                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      decomposeParDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+numberOfSubdomains 64;
+method          simple;
+simpleCoeffs
+{
+    n           (8 8 1);
+}
+
+constraints
+{
+
+    // Prevent decomposition splitting of the geometric regions
+    // Uses any topoSetFaceSource for selecting the constrained faces
+    geometric
+        {
+            type    geometric;
+            grow    false;
+            selection
+            {
+                 refineSectionFaces
+                {
+                   name    refineSectionFaces;
+                   type    faceSet;
+                   action  new;
+                   source  cellToFace;
+                   option  all;
+                   set     refineSection;
+                }
+            }
+        }
+}
+
+// ************************************************************************* //

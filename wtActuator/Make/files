@@ -1,0 +1,10 @@
+wtActuatorSource.C
+actuatorModel/actuatorModel/actuatorModel.C
+actuatorModel/actuatorModel/actuatorModelNew.C
+actuatorModel/actuatorModel_airfoil/actuatorModel_airfoil.C
+actuatorModel/actuatorModel_uniform/actuatorModel_uniform.C
+actuatorModel/actuatorModel_numeric/actuatorModel_numeric.C
+actuatorModel/actuatorModel_adaptive/actuatorModel_adaptive.C
+actuatorModel/actuatorModel_analytic/actuatorModel_analytic.C
+
+LIB = $(FOAM_USER_LIBBIN)/libwtActuator

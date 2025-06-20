@@ -1,0 +1,25 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2406                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+
+flowVelocity         (8 0 0);
+pressure             0;
+TI                   0.08;
+turbulentKE          0.6144;
+turbulentEpsilon     0.000344;
+
+/*Calculations
+
+Cmu = 0.09
+Kappa = 0.408
+
+TKE_value = ((Uinlet*TI)**2)*3/2
+Epsilon_value = (TKE_value**1.5)*(Cmu)/D
+
+https://www.cfd-online.com/Wiki/Turbulence_free-stream_boundary_conditions
+*/
+// ************************************************************************* //

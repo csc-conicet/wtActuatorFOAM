@@ -1,0 +1,35 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2406                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+
+Uref                 8;
+Zref                 90;
+z0                   uniform 0.0449223;
+turbulentKE          0.6144;
+flowDir              (1 0 0);
+zDir                 (0 0 1);
+d                   uniform 0;
+UTop                10.5332;
+
+/*Calculations
+TI = 0.08
+Cmu = 0.09
+Kappa = 0.408
+Uinlet = 8
+D = 126
+H = 90
+Zdomain = 1000
+
+TKE_value = ((Uinlet*TI)**2)*3/2
+Epsilon_value = (TKE_value**1.5)*(Cmu)/D
+
+Z0_TI = H/(math.exp((Kappa*Cmu**(-1/4)*math.sqrt(2/3))/(TI)))
+Ushear = Uinlet*Kappa/(math.log((H+Z0_TI)/Z0_TI))
+UTop = (Ushear/Kappa)*(math.log((Zdomain+Z0_TI)/Z0_TI))  
+
+*/
+// ************************************************************************* //

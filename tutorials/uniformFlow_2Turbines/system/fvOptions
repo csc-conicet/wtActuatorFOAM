@@ -1,0 +1,150 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2406                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*----------------------------------------------------------------------------|
+|   wtActuatorFOAM:                                                           |
+|                                                                             |
+|    Yet another actuator library to simulate wind turbines in OpenFOAM       |
+|                                                                             |
+| Copyright (C) 2025 Computational Simulation Center (CSC-CONICET)--Argentina |
+|                                                                             |
+| This library is based on OpenFOAM: The Open Source CFD Toolbox,             |
+| Copyright (C) 2011-2016 OpenFOAM Foundation,                                |
+| Copyright (C) 2018-2025 OpenCFD Ltd.                                        |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvOptions;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+// Define first turbine
+disk1
+{
+    // Mandatory entries
+    type            wtActuator;
+    active          on;
+
+    // Selection set
+    cellSet                     actuationDisk1;
+    selectionMode               cellSet;
+
+    // Field that the source is applied to
+    fieldNames                  (U);
+
+    // Reference density for computing aerodynamical forces in incompressible cases
+    density                     1.225;
+
+    // Turbine characteristics
+    diskArea                    12468.981242097889; // turbine disk area
+    blades                      3;                  // number of blades
+    diskPoint                   (630 567 567);      // turbine center point
+    diskDir                     (1 0 0);            // turbine orientation (pointing backwards)
+    yaw                         0.0;                // yaw angle with respect to x-axis 
+                                                    // (positive counter clockwise)
+                                                    // yaw == 360 self orienting disk
+
+    // Actuator mesh nodes distribution in disk area
+    actuatorMesh                rings; // [rings, lines (not yet implemented)]
+    // rings actuator mesh parameters
+    nodesCellsRatio             2; // aimed actuator nodes per CFD cell
+    rThicknessCellsizeRatio     0.5; // Ratio ring thickness to cellSize
+    
+    // Actuator model used to compute aerodynamical forces [uniform, airfoil, numeric, adaptive, analytic]
+    actuatorModel   uniform; // Forces computed according to uniform thrust and torque 
+                             // distributions on disk area (may be corrected by tip/root factors)
+    // actuatorModel   airfoil; // Forces computed according to the blade element method
+    //                          // (needs detailed airfoils information, may be corrected by tip/root factors)
+    // actuatorModel   numeric; // Forces computed according to the actuator disk model from van der Laan etal 
+                                // (2015) doi: 10.1002/we.1816 
+                                // (needs forcesRadialDistribution table with forces at each radial position 
+                                //  for each wind speed, tip/root factors do not apply)
+    // actuatorModel   adaptive; // Forces computed according to the actuator disk model from Navarro Diaz 
+                                 // etal (2019) doi: 10.1016/j.jweia.2018.12.018
+    //                           // (needs forcesRadialDistribution table with forces at each radial position
+    //                           //  for each wind speed and turbine wind speed reference, 
+    //                           //  tip/root factors do not apply) 
+    // actuatorModel   analytic; // Forces computed according to the actuator disk model from Sørensen etal 
+                                 // (2020) doi: 10.1016/j.renene.2019.09.134
+                                 // (may use tip/root correction factors)
+
+    // How to compute the undisturbed wind speed in terms of averaged disk speed [table, induction1, induction2]
+    actuatorInductionModel      table; // Use wtCurvesTable to interpolate Uref from Ud
+    // actuatorInductionModel      sorensen; // Use formula from Sørensen etal (2020) 
+    //                                       // doi: 10.1016/j.renene.2019.09.134
+    // actuatorInductionModel      analytic; // Use formula: Uref = UdDir * Ct_ / Cp_
+
+    // tip factor when aplicable [prandtl, glauert, shen, none] defaults to none
+    // tipfactor                   prandtl;  // Prandtl tip factor Betz (1919)
+    tipfactor                   glauert;  // Tip factor from Glauert (1935). doi: 10.1007/978-3-642-91487-4_3 
+    //tipfactor                   shen;  // Tip factor from Shen etal (2005). doi: 10.1002/we.153
+
+    // root factor when aplicable [glauert, sorensen, none] defaults to none
+    // rootfactor                  glauert; // Root factor from Glauert (1935). doi: 10.1007/978-3-642-91487-4_3
+    rootfactor                  sorensen; // Root factor from Sørensen (2020) doi: 10.1016/j.renene.2019.09.134
+    rootfactordistance          0.3;
+    
+    // Calibration mode to construct actuator tables 
+    calibration                 false; // [true, false]
+    // Calibration example
+    // calibration                 true; // [true, false]
+    // Uref    7; (mandatory)
+    // Cp      0.45; (optional)
+    // Ct      0.6; (optional)
+    // omega   1; (optional)
+    // pitch   0.5; (optional)
+    
+    UdCorrection                false; // Use Ud correction from Shapiro etal (2019) doi: 10.1002/we.2376.
+    gradInterpolation           true;  // Use the gradient to extrapolate Ud to node location
+    
+    // Flow orientation computation
+    orientationRadiusFrac       1; // Diameter of sphere (wrt maxR_) where flow direction is computed
+
+    // Selection of reduced cellSet for actuator computations (diskCells_)
+    selectRadialBoundFrac       1.15; // Diameter of sphere (wrt maxR_) where actuator cells are selected
+    selectAxialBoundFrac        3;    // Distance to actuator plane (wrt minSep_) that limits actuator cells selected
+
+    // Parameters for weighting cell velocities to compute average disk velocity 
+    unifWeight                  false; // Uniform weight on every diskCells_ cell [true, false]
+    axialWeight                 true;  // Weighting with distance to actuator plane (gaussian) [true, false]
+    sigmaAxialWeightFrac        2.0;   // Width of axialWeight gussian (wrt minSep_)
+    sphereWeight                false; // Weighting with distance to actuator center (gaussian) [true, false]
+    maxRweight                  1.0;   // Max radial distance where cells are considered for weighting (wrt maxR_)
+    sigmaSphereWeightFrac       0.5;   // Width of sphereWeight Gaussian (wrt maxR_)
+
+    // Force distribution parameters distributing nodal forces according to cells distance to node
+    sphereTolDiskFrac           1.15;    // Max radial distance where cells are considered for force smearing wrt maxR_
+    distribGaussianCoeffs       (1 1 1); // Width of Gaussians for force smearing wrt minSep_ (n,t,r)
+    
+    // Input tables
+    #include "./constant/wtCurvesTable.txt" // Turbine characteristics table
+    #include "./constant/blade_NREL5MW.txt" // Blade characteristics table (Only needed for airfoil actuatorModel)
+    #include "./constant/forcesRadialDistribution.txt" // Forces distribution table (Needed for numeric and adaptive
+                                                       // actuatorMode)
+    // Output 
+    // saveLevel                   0; // no outActuators file
+    saveLevel                   1; // outActuators.csv file: 
+                                        // Actuator name, time [s], Uref [m/s], Ud [m/s], Cp, Ct, omega [rad/s],  
+                                        // pitch [deg], Power(Uref, Cp) [W], Thrust(Uref, Ct) [N], Torque [Nm]
+    // saveLevel                   2; // outActuators_extended.csv thurst and toque accumulated at nodes:
+                                        // Actuator name, time [s], Thrust_actuator [N], Torque_actuator [Nm],
+                                        // Thrust_nodes [N], Torque_nodes [Nm]
+    saveNodeForces              false;  // Save forces computed at each node [true, false] 
+                                        // If calibration = true, this should be also true
+}
+
+disk2						
+{						
+	$disk1					
+						
+	cellSet	                    actuationDisk2;
+    	diskPoint                   (1638 630 567);
+}		
