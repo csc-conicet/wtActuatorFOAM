@@ -60,7 +60,7 @@ void Foam::fv::wtActuatorSource::computeDiskOrientation(
             }
         }
 
-        if (parted_ || mesh_.time().writeTime())
+        if (parted_ || firstStep_ || mesh_.time().writeTime())
         {
             reduce(center_orientV, sumOp<scalar>());
             reduce(center_orientUd, sumOp<vector>());
@@ -179,7 +179,7 @@ void Foam::fv::wtActuatorSource::computeUdWeights()
         weightADcells_[diskCells_[c]] = cWeight;
         weightedADvol_ += cWeight;
     }
-    if (parted_ || mesh_.time().writeTime())
+    if (parted_ || firstStep_ || mesh_.time().writeTime())
     {
         reduce(weightedADvol_, sumOp<scalar>());
     }
@@ -194,7 +194,7 @@ vector Foam::fv::wtActuatorSource::computeUd(
     {
         Ud += U[diskCells_[c]] * weightADcells_[diskCells_[c]] / weightedADvol_;
     }
-    if (parted_ || mesh_.time().writeTime())
+    if (parted_ || firstStep_ || mesh_.time().writeTime())
     {
         reduce(Ud, sumOp<vector>());
     }
@@ -287,7 +287,7 @@ vector Foam::fv::wtActuatorSource::getNodeVelocity(
         }
     }
 
-    if (parted_ || mesh_.time().writeTime())
+    if (parted_ || firstStep_ || mesh_.time().writeTime())
     {
         reduce(U_node, minOp<vector>());
     }
@@ -390,7 +390,7 @@ void Foam::fv::wtActuatorSource::distributeActuatorForces(
                 }
             }
         }
-        if (parted_ || mesh_.time().writeTime())
+        if (parted_ || firstStep_ || mesh_.time().writeTime())
         {
             reduce(nodeV, sumOp<scalar>());
         }

@@ -1,11 +1,6 @@
+settings.json
+
+# Ignore compilation results
 wtActuator/Make/
 wtActuator/lnInclude/
 
-tutorials/*/*
-!tutorials/*/system
-!tutorials/*/constant
-!tutorials/*/0.orig
-!tutorials/*/Allclean
-!tutorials/*/Allrun
-tutorials/*/constant/cellDecomposition
-tutorials/*/constant/polyMesh
