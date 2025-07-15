@@ -1,6 +1,27 @@
 settings.json
 
-# Ignore compilation results
-wtActuator/Make/
-wtActuator/lnInclude/
+# Ignore compilation files
+wtActuator/Make/linux64GccDPInt32Opt/*
+wtActuator/lnInclude/*
+
+# Folder for local testing
+sandbox/*
+
+# Ignore everything in 'tutorials' folder
+tutorials/*
+
+# Except for 'system' etc
+!tutorials/*/system/
+!tutorials/*/constant/
+!tutorials/*/0.orig/
+!tutorials/*/Allclean
+!tutorials/*/Allrun
+
+# Additionally, if there are files inside 'tutorials/subfolders' that should be included, you need to unignore those as well
+!tutorials/*/system/**
+!tutorials/*/constant/**
+!tutorials/*/0.orig/**
+
+# Except for mesh files
+tutorials/*/constant/polyMesh
 

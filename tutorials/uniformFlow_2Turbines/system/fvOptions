@@ -57,7 +57,10 @@ disk1
     // rings actuator mesh parameters
     nodesCellsRatio             2; // aimed actuator nodes per CFD cell
     rThicknessCellsizeRatio     0.5; // Ratio ring thickness to cellSize
-    
+    // // lines actuator mesh parameters
+    // nodesPerLine                16;
+    // linesNumber                 32; 
+
     // Actuator model used to compute aerodynamical forces [uniform, airfoil, numeric, adaptive, analytic]
     actuatorModel   uniform; // Forces computed according to uniform thrust and torque 
                              // distributions on disk area (may be corrected by tip/root factors)

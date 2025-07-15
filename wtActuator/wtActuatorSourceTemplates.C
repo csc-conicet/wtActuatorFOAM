@@ -322,10 +322,10 @@ void Foam::fv::wtActuatorSource::saveNodeForces(
     scalar Faero_t
 ) const
 {
-        // "Actuator name, time [s], node#, r [m], theta [rad], x, y, z,
+        // "Actuator name, time [s], node#, r [m], theta [rad], area, x, y, z,
         // Unode_x, Unode_y, Unode_z, Faero_n, Faero_t"
         (*outNodes) << name() << "," << mesh().time().value() << "," << node << ","
-                    << nodesList()[node][0] << "," << nodesList()[node][1] << ","
+                    << nodesList()[node][0] << "," << nodesList()[node][1] << "," << nodesList()[node][2] << ","
                     << nodesPosList_[node][0] << "," << nodesPosList_[node][1] << "," << nodesPosList_[node][2] << ","
                     << Unode[0] << "," << Unode[1] << "," << Unode[2]
                     << "," << Faero_n << "," << Faero_t << std::endl;

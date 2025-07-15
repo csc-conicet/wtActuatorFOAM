@@ -380,7 +380,7 @@ Foam::fv::wtActuatorSource::wtActuatorSource(
             }
 
             outNodes = new std::ofstream(rootDir + "/" + name_ + "_nodeForces.csv");
-            (*outNodes) << "Actuator name, time [s], node#, r [m], theta [rad], x [m], y [m], z [m], ";
+            (*outNodes) << "Actuator name, time [s], node#, r [m], theta [rad], area [m^2], x [m], y [m], z [m], ";
             (*outNodes) << "Unode_x [m/s], Unode_y [m/s], Unode_z [m/s], Faero_n [N/m^2], Faero_t [N/m^2]" << std::endl;
         }
     }

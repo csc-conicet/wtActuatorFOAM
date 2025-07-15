@@ -21,4 +21,6 @@ runParallel $(getApplication)
 
 runApplication reconstructPar
 
+touch case.foam
+
 #------------------------------------------------------------------------------
