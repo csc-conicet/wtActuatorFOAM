@@ -2,9 +2,9 @@
 
 <center><img src="./wtactuatorfoam.png" width="800"></center>
 
-Yet another actuator library to simulate wind turbines in OpenFOAM
+**Yet another actuator library to simulate wind turbines in OpenFOAM**
 
-Copyright (C) 2025 Computational Simulation Center (CSC-CONICET) - Argentina
+Copyright (C) 2025-2026 Computational Simulation Center (CSC-CONICET) - Argentina
 
 
 ## Installation
@@ -29,12 +29,12 @@ To run a case, you need to add `wtActuator` to the `libs` entry in the `controlD
 
 Refer to the `fvOptions` folder in the `system` directory of each tutorial case for configuration details. Each `wtActuator` object is associated to a cellSet defined in the `topoSetDict` of the case.
 
-Each tutorial case has an `./Allrun` file with the sequence for running a case.
+Each tutorial case has `./Allrun_(serial|parallel)` files with the sequence for running a case. The parallel version requires OpenFOAM to be installed with the proper MPI libraries.
 
 
 ### Output
 
-There are different levels of information to be outputed by the `wtActuator`. All of them occur at writeTime according to what is defined in the `controlDict` file.
+There are different levels of information to be outputed by the `wtActuator`. All of them occur at each writeTime according to what is defined in the `controlDict` file.
 
 Global information of all the `wtActuator`s in the case are combined in unique files. According to the value set to the `saveLevel` the information reported is:
 
@@ -42,7 +42,7 @@ Global information of all the `wtActuator`s in the case are combined in unique f
 |:-------------:|----------------------- |
 |      0        | no outActuators file   |
 |      1        | outActuators.csv file: <br> `Actuator name, time [s], Uref [m/s], Ud [m/s], Cp, Ct, omega [rad/s], pitch [deg], Power(Uref, Cp) [W], Thrust(Uref, Ct) [N], Torque [Nm]` |  
-|      2        | outActuators_extended.csv file (thurst and toque accumulated at nodes): <br> `Actuator name, time [s], Thrust_actuator [N], Torque_actuator [Nm], Thrust_nodes [N], Torque_nodes [Nm]` |
+|      2        | outActuators_extended.csv file (thurst and toque accumulated at nodes): <br> `Actuator name, time [s], Thrust_actuator [N], Torque_actuator [Nm], Thrust_nodes [N], Torque_nodes [Nm], meshRot [rad]` |
 
 Additionally when the `saveNodeForces` flag is set `true` a file per `wtActuator` is saved in the `outActuatorsForces` directory with information on each actuator node and `writeTime`:  
         `Actuator name, time [s], node#, r [m], theta [rad], area [m^2], x [m], y [m], z [m], Unode_x [m/s], Unode_y [m/s], Unode_z [m/s],Faero_n [N/m^2], Faero_t [N/m^2]`
@@ -62,6 +62,7 @@ Present and past developers:
 - Alejandro D. Otero (alejandro.otero@csc.conicet.gov.ar)
 - Dimas A. Barile (dimas.barile@csc.conicet.gov.ar)
 - Sebastián Santisi
+- Francisco J. Devereux
+- Juan M. Gorza
 - Juan I. Teich
 - Gonzalo Navarro Diaz
-

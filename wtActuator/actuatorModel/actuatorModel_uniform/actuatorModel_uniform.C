@@ -103,14 +103,14 @@ void Foam::actuatorModel_uniform::applyForce_tiproot(
     for(label node = 0; node < rotor_.nodesNumber(); node++)
     {
         scalar rNode = rotor_.nodesList()[node][0];
-        if (abs(rNode) < VSMALL)
+        if (fabs(rNode) < VSMALL * rotor_.maxR())
         {
             center_area += rotor_.nodesList()[node][2];
         }
     }
 
     scalar Thrust_area = rotor_.Thrust() / rotor_.diskArea();
-    scalar Torque_area = rotor_.Torque() / (rotor_.diskArea() - center_area);
+    scalar Torque_area = rotor_.Torque() / rotor_.diskArea();
 
     volTensorField *gradU = NULL;
     if (gradInterpolation_) gradU = new volTensorField("gradU", fvc::grad(U));
@@ -121,24 +121,21 @@ void Foam::actuatorModel_uniform::applyForce_tiproot(
     DynamicList<scalar> F_ti_list;
     DynamicList<tensor> iTransform_list;
 
-    scalar sumF_nXfactor = 0;
-    scalar sumF_t = 0;
-    scalar sumF_tXfactor = 0;
-
+    scalar sumFXfactor = 0;
     for(label node = 0; node < rotor_.nodesNumber(); node++)
     {
         scalar rNode = rotor_.nodesList()[node][0];
         scalar areaNode = rotor_.nodesList()[node][2];
 
-        if (abs(rNode) < VSMALL)
+        if (fabs(rNode) < VSMALL * rotor_.maxR())
         {
             scalar tiprootfactor = (this->*rootfactor_)(rNode, M_PI, rDist_);
 
-            scalar F_niXfactor = tiprootfactor * areaNode;
-            sumF_nXfactor += F_niXfactor;
+            scalar FiXfactor = tiprootfactor * areaNode;
+            sumFXfactor += FiXfactor;
 
             uniThetaDir_list.append(vector(0, 0, 0));
-            F_ni_list.append(F_niXfactor);
+            F_ni_list.append(FiXfactor);
             F_ti_list.append(0);
             iTransform_list.append(tensor::one);
             if (saveNodeForces_)
@@ -166,15 +163,12 @@ void Foam::actuatorModel_uniform::applyForce_tiproot(
             scalar tiprootfactor = (this->*tipfactor_)(rNode, rotor_.lambda(), phi);
             tiprootfactor *= (this->*rootfactor_)(rNode, phi, rDist_);
 
-            scalar F_niXfactor = tiprootfactor * areaNode;
-            scalar F_tiXfactor = tiprootfactor * areaNode / rNode;
-            sumF_nXfactor += F_niXfactor;
-            sumF_tXfactor += F_tiXfactor;
-            sumF_t += areaNode / rNode;
+            scalar FiXfactor = tiprootfactor * areaNode;
+            sumFXfactor += FiXfactor;
 
             uniThetaDir_list.append(uniThetaDir);
-            F_ni_list.append(F_niXfactor);
-            F_ti_list.append(F_tiXfactor);
+            F_ni_list.append(FiXfactor);
+            F_ti_list.append(FiXfactor / rNode);
             iTransform_list.append(iTransform);
             if (saveNodeForces_)
             {
@@ -185,16 +179,14 @@ void Foam::actuatorModel_uniform::applyForce_tiproot(
     }
     if(gradU != NULL) delete gradU;
 
-    scalar scaleFactor_n = rotor_.diskArea() / sumF_nXfactor;
-    scalar scaleFactor_t = sumF_t / sumF_tXfactor;
-
+    scalar scaleFactor = rotor_.diskArea() / sumFXfactor;
     for(label node = 0; node < rotor_.nodesNumber(); node++)
     {
         vector coordNode = rotor_.nodesPosList()[node];
         scalar areaNode = rotor_.nodesList()[node][2];
 
-        scalar Faero_n = scaleFactor_n * F_ni_list[node] * Thrust_area;
-        scalar Faero_t = scaleFactor_t * F_ti_list[node] * Torque_area;
+        scalar Faero_n = scaleFactor * F_ni_list[node] * Thrust_area;
+        scalar Faero_t = scaleFactor * F_ti_list[node] * Torque_area;
 
         rotor_.distributeActuatorForces(Usource,
                                         (Faero_t * uniThetaDir_list[node] + Faero_n * rotor_.uniDiskDir()),
@@ -228,7 +220,7 @@ void Foam::actuatorModel_uniform::applyForce_no_tiproot(
     for(label node = 0; node < rotor_.nodesNumber(); node++)
     {
         scalar rNode = rotor_.nodesList()[node][0];
-        if (abs(rNode) < VSMALL)
+        if (fabs(rNode) < VSMALL * rotor_.maxR())
         {
             center_area += rotor_.nodesList()[node][2];
         }
@@ -247,7 +239,7 @@ void Foam::actuatorModel_uniform::applyForce_no_tiproot(
 
         scalar Faero_n = areaNode * Thrust_area;
 
-        if ((abs(rNode) < VSMALL) or (rotor_.omega() < VSMALL))
+        if ((fabs(rNode) < VSMALL * rotor_.maxR()) or (rotor_.omega() < VSMALL))
         {
             rotor_.distributeActuatorForces(Usource, (Faero_n * rotor_.uniDiskDir()), node, tensor::one);
 

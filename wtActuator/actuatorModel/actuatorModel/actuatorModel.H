@@ -167,7 +167,7 @@ public:
 
     // Selectors
 
-        //- Return a reference to the selected trim model
+        //- Return a reference to the selected actuatorModel
         static autoPtr<actuatorModel> New
         (
             const fv::wtActuatorSource& rotor,

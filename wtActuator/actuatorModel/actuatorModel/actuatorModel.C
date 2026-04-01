@@ -157,7 +157,7 @@ scalar Foam::actuatorModel::tipfactor_Shen(
 {
     // Shen tip correction factor:
     scalar c1 = 0.125;
-    scalar c2 = 27;
+    scalar c2 = 21; 
     scalar c3 = 0.1;
 
     scalar tipfactor = 1;
@@ -272,7 +272,7 @@ void Foam::actuatorModel::nodeUrel(vector &Unode_ntr, scalar &rNode, vector &Ure
     scalar U_r = Unode_ntr[2];
 
     // scalar phi;
-    if (abs(rNode * rotor_.omega() - U_t) < VSMALL) phi = M_PI;
+    if (fabs(rNode * rotor_.omega() - U_t) < VSMALL) phi = M_PI;
     else (phi = Foam::atan(U_n / (rNode * rotor_.omega() - U_t)));
 
     Urel = vector(U_n, U_t - rNode * rotor_.omega(), 0.0);

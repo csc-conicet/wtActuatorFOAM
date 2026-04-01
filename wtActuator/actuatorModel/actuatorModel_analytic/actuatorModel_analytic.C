@@ -104,7 +104,7 @@ void Foam::actuatorModel_analytic::applyForce(
         scalar rNode = rotor_.nodesList()[node][0];
         scalar areaNode = rotor_.nodesList()[node][2];
 
-        if (abs(rNode) < VSMALL)
+        if (fabs(rNode) < VSMALL * rotor_.maxR())
         {
             vector Unode = rotor_.getNodeVelocity(node, U, gradU);
             scalar tiprootfactor = (this->*rootfactor_)(rNode, M_PI, rDist_);
@@ -115,7 +115,8 @@ void Foam::actuatorModel_analytic::applyForce(
             uniThetaDir_list.append(vector(0, 0, 0));
             iTransform_list.append(tensor::one);
             tiprootfactor_list.append(tiprootfactor);
-            scalar Udi = mag(Unode);
+            // scalar Udi = mag(Unode);
+            scalar Udi = Unode & rotor_.uniDiskDir();
             Udi_list.append(Udi);
             Uinfi_list.append(induction1(Udi));
             if (saveNodeForces_)
@@ -150,7 +151,8 @@ void Foam::actuatorModel_analytic::applyForce(
             uniThetaDir_list.append(uniThetaDir);
             iTransform_list.append(iTransform);
             tiprootfactor_list.append(tiprootfactor);
-            scalar Udi = mag(Unode);
+            // scalar Udi = mag(Unode);
+            scalar Udi = Unode & rotor_.uniDiskDir();
             Udi_list.append(Udi);
             Uinfi_list.append(induction1(Udi));
             if (saveNodeForces_)
@@ -174,7 +176,7 @@ void Foam::actuatorModel_analytic::applyForce(
 
         scalar Faero_n = 0;
         scalar Faero_t = 0;
-        if (abs(rNode) < VSMALL)
+        if (fabs(rNode) < VSMALL * rotor_.maxR())
         {
             Faero_n = areaNode * pow(Uinfi_list[node], 2) * (q0 * rotor_.lambda() * tiprootfactor_list[node]);
         }

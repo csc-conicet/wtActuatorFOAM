@@ -17,7 +17,7 @@ runApplication topoSet
 
 runApplication decomposePar -cellDist
 
-runParallel simpleFoam
+runParallel $(getApplication)
 
 runApplication reconstructPar
 

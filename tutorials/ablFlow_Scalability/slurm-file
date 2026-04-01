@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# slurm script to run this case in Clemetina XXI supercomputer
+
+#SBATCH --job-name=wtActuatorFOAM-abl
+#SBATCH --nodes=1
+#SBATCH --partition=testing
+#SBATCH --exclusive
+#SBATCH --time=15:00
+
+# Load modules and OpenFOAM environment
+module purge
+module load gnu/13.2.0
+module load openmpi5/5.0.3
+module load metis/5.1.0
+source /data/contrib/pci_68/openfoam/OpenFOAM-v2506_local/etc/bashrc
+
+srun ./Allrun_parallel

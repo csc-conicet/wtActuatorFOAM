@@ -112,9 +112,22 @@ void Foam::fv::wtActuatorSource::constructNodesPosList()
     }
 }
 
-point Foam::fv::wtActuatorSource::computeNodePosition(scalar rNode, scalar titaNode_rad)
+void Foam::fv::wtActuatorSource::meshRotation_const(const scalar t, const scalar dt)
 {
-    point Bi = vector(0, rNode * sin(titaNode_rad), rNode * cos(titaNode_rad));
+    thetaMesh_rad = thetaMesh_ini - omegaMesh_ * t; // Minus sign so positive Omega produces clockwise rotation 
+}
+
+void Foam::fv::wtActuatorSource::meshRotation_integ(const scalar t, const scalar dt)
+{
+    thetaMesh_rad = thetaMesh_rad - omega_ * dt; // Minus sign so positive Omega produces clockwise rotation 
+}
+
+point Foam::fv::wtActuatorSource::computeNodePosition(scalar rNode, scalar thetaNode_rad)
+{
+    // point Bi = vector(0, rNode * sin(thetaNode_rad), rNode * cos(thetaNode_rad));
+    point Bi = vector(0, 
+                      rNode * sin(thetaNode_rad + thetaMesh_rad), 
+                      rNode * cos(thetaNode_rad + thetaMesh_rad));
 
     point BiDir = vector(-Bi[1] * uniDiskDir_[1], Bi[1] * uniDiskDir_[0], Bi[2]);
 
@@ -166,10 +179,10 @@ void Foam::fv::wtActuatorSource::computeUdWeights()
             else {
                 vWeight = 1;
                 if (sphereWeight_){
-                    vWeight *= (1 / (sigmaSphereWeight * std::sqrt(M_PI))) * std::exp(-1 * std::pow((dSphere / sigmaSphereWeight), 2));
+                    vWeight *= (1 / (sigmaSphereWeight * std::sqrt(2 * M_PI))) * std::exp(-0.5 * std::pow((dSphere / sigmaSphereWeight), 2));
                 }
                 if (axialWeight_){
-                    vWeight *= (1 / (sigmaAxialWeight * std::sqrt(M_PI))) * std::exp(-1 * std::pow((dPlane / sigmaAxialWeight), 2));
+                    vWeight *= (1 / (sigmaAxialWeight * std::sqrt(2 * M_PI))) * std::exp(-0.5 * std::pow((dPlane / sigmaAxialWeight), 2));
                 }
             }
             cWeight = mesh().V()[diskCells_[c]] * (uWeight + vWeight);
@@ -249,6 +262,7 @@ void Foam::fv::wtActuatorSource::interpolateWTCurves(scalar UdDir = VGREAT)
         Uref_ = ddx*(wtUrefList_[i2] - wtUrefList_[i1]) + wtUrefList_[i1];
     }
 
+    Uinf_ = Uref_;
     // Interpolate Cp, Ct, omega and pitch
     Cp_ = ddx*(wtCpList_[i2] - wtCpList_[i1]) + wtCpList_[i1];
     Ct_ = ddx*(wtCtList_[i2] - wtCtList_[i1]) + wtCtList_[i1];
@@ -260,8 +274,8 @@ void Foam::fv::wtActuatorSource::interpolateWTCurves(scalar UdDir = VGREAT)
 void Foam::fv::wtActuatorSource::computeWTmagnitudes()
 {
     // TODO: Manage incompressible/compressible cases with density_
-    Power_ =  diskArea_ * Cp_ * pow(Uref_, 3) / 2;
-    Thrust_ = diskArea_ * Ct_ * pow(Uref_, 2) / 2;
+    Power_ =  diskArea_ * Cp_ * pow(Uinf_, 3) / 2;
+    Thrust_ = diskArea_ * Ct_ * pow(Uinf_, 2) / 2;
     Torque_ = (omega_ < VSMALL) ? 0.0 : Power_ / omega_;
 }
 
@@ -322,8 +336,10 @@ void Foam::fv::wtActuatorSource::saveNodeForces(
     scalar Faero_t
 ) const
 {
-        // "Actuator name, time [s], node#, r [m], theta [rad], area, x, y, z,
-        // Unode_x, Unode_y, Unode_z, Faero_n, Faero_t"
+        // Actuator name, time [s], node#, 
+        // r [m], theta [rad], area [m^2], x [m], y [m], z [m], ";
+        // "Unode_x [m/s], Unode_y [m/s], Unode_z [m/s], ";
+        // "fn [(N/m^2)/(kg/m^3)], ft [(N/m^2)/(kg/m^3)]"
         (*outNodes) << name() << "," << mesh().time().value() << "," << node << ","
                     << nodesList()[node][0] << "," << nodesList()[node][1] << "," << nodesList()[node][2] << ","
                     << nodesPosList_[node][0] << "," << nodesPosList_[node][1] << "," << nodesPosList_[node][2] << ","
@@ -338,9 +354,9 @@ void Foam::fv::wtActuatorSource::distributeActuatorForces(
     tensor iTransform
 ) const
 {
-    scalar sphereTolDisk = sphereTolDiskFrac_ * maxR_;
-    // Vector of Gaussian for force smearing (n, t, r)
-    vector gaussianCoeff = distribGaussianCoeffs_ * minSep_;
+    // scalar sphereTolDisk = sphereTolDiskFrac_ * maxR_;
+    // // Vector of Gaussian for force smearing (n, t, r)
+    // vector gaussianCoeff = distribGaussianCoeffs_ * minSep_;
 
     // If sphereTolDisk is 0 just put the force on the cell corresponding to node
     if (sphereTolDisk < VSMALL)
@@ -356,11 +372,20 @@ void Foam::fv::wtActuatorSource::distributeActuatorForces(
         std::map<label, float> weightCells;
         DynamicList<label> nodeCells;
         vector coordNode = nodesPosList_[node];
+
         scalar En = gaussianCoeff[0];
         scalar Et = gaussianCoeff[1];
         scalar Er = gaussianCoeff[2];
 
-        scalar gaussScale = (1 / (En * Et * Er * pow(sqrt(M_PI), 3)));
+        if (epsilonScaling_)
+        {
+            scalar epsScale = espScale_[node];
+            En *= epsScale;
+            Et *= epsScale;
+            Er *= epsScale;
+        }
+
+        scalar gaussScale = (1 / (En * Et * Er * pow(2 * sqrt(M_PI), 3)));
         scalar nodeV = 0; // Cumulated volume of the node cells weighted for force distribution
 
         // loop over all the actuator cells to weight for force distribution
@@ -371,14 +396,14 @@ void Foam::fv::wtActuatorSource::distributeActuatorForces(
             vector arrow_ntr = iTransform & arrow;  // Segment from node to cell in ntr coordinates
 
             // calculate the distances in blade coordinate system
-            scalar dn = abs(arrow_ntr[0]);
-            scalar dt = abs(arrow_ntr[1]);
-            scalar dr = abs(arrow_ntr[2]);
+            scalar dn = fabs(arrow_ntr[0]);
+            scalar dt = fabs(arrow_ntr[1]);
+            scalar dr = fabs(arrow_ntr[2]);
 
             // Calculate weight if cell is inside the sphere (cut excess outside the disc)
             if (mag(cellCentre - diskPoint_) <= sphereTolDisk)
             {
-                scalar gaussian = exp(-1 * (pow(dn / En, 2) + pow(dt / Et, 2) + pow(dr / Er, 2)));
+                scalar gaussian = exp(-0.5 * (pow(dn / En, 2) + pow(dt / Et, 2) + pow(dr / Er, 2)));
 
                 if (gaussian > 0.0001) // Disregard the tails of the Gaussian
                 {
@@ -399,6 +424,7 @@ void Foam::fv::wtActuatorSource::distributeActuatorForces(
         forAll(nodeCells, c)
         {
             Usource[nodeCells[c]] += weightCells[nodeCells[c]] * Faero / nodeV;
+            // TODO: do we need to normalize with nodeV ~ 1?
         }
 
     }
@@ -411,18 +437,34 @@ void Foam::fv::wtActuatorSource::addActuatorForce(
     vectorField &Usource
 )
 {
+    bool flagWrite = mesh_.time().writeTime();
+
     // TODO: detect movement
 
     // Recompute if actuator moved
     if (movingAD_ or firstStep_){
         computeDiskOrientation(U);
 
-        constructNodesPosList();
-
         // Create list of cells that belong to the disk
         selectADcells();
 
         computeUdWeights();
+    }
+
+    if (rotatingAD_)
+    {
+        (this->*meshRotation)(mesh().time().value(), mesh().time().deltaTValue());
+
+        if (flagWrite){
+            reduce(thetaMesh_rad, minOp<scalar>()); // TODO: generalize for any sense of rotation
+        }
+
+        Info << "    - " << name() << ": Theta Mesh = " << thetaMesh_rad * 180 / M_PI << endl;
+    }
+
+    if (rotatingAD_ or movingAD_ or firstStep_)
+    {
+        constructNodesPosList();
     }
 
     vector Ud = computeUd(U);
@@ -463,7 +505,6 @@ void Foam::fv::wtActuatorSource::addActuatorForce(
     scalar Thrust_nodes = 0.0; // Thrust computed from nodes contribution
     scalar Torque_nodes = 0.0; // Torque computed from nodes contribution
     // TODO: accumulate thrust and torque from forces applied in cells
-    bool flagWrite = mesh_.time().writeTime();
 
     actuatorModel_->applyForce(U, rho, Usource, Thrust_nodes, Torque_nodes, flagWrite);
 
@@ -484,11 +525,11 @@ void Foam::fv::wtActuatorSource::addActuatorForce(
         if (saveLevel_ > 1)
         {
             // "Actuator_name, time [s], Thrust_actuator [N], Torque_actuator [Nm], "
-            // "Thrust_nodes [N], Torque_nodes [Nm]" << std::endl;
+            // "Thrust_nodes [N], Torque_nodes [Nm], meshRot [rad]" << std::endl;
             (*outActuators2) << name() << "," << t << ","
                              << Thrust_ * density_ << "," << Torque_ * density_ << ","
-                             << Thrust_nodes * density_ << "," << Torque_nodes * density_
-                             << std::endl;
+                             << Thrust_nodes * density_ << "," << Torque_nodes * density_ << ","
+                             << thetaMesh_rad << std::endl;
         }
     }
 

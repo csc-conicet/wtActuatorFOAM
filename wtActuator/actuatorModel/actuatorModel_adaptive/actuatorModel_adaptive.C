@@ -251,11 +251,11 @@ void Foam::actuatorModel_adaptive::applyForce(
         vector coordNode = rotor_.nodesPosList()[node];
 
         vector Unode = rotor_.getNodeVelocity(node, U, gradU);
-        scalar magUnode = mag(Unode);
+        scalar magUnode = Unode & rotor_.uniDiskDir(); //mag(Unode);
 
         vector uniBladeDir, uniThetaDir;
         tensor iTransform;
-        if (fabs(rNode) < VSMALL)
+        if (fabs(rNode) < VSMALL * rotor_.maxR())
         {
             uniThetaDir = {0, 0, 1};
             iTransform = tensor::one;

@@ -50,6 +50,11 @@ inline Foam::scalar Foam::fv::wtActuatorSource::Ct() const
     return Ct_;
 }
 
+inline Foam::scalar Foam::fv::wtActuatorSource::Ct_rated() const
+{
+    return Ct_rated_;
+}
+
 inline Foam::scalar Foam::fv::wtActuatorSource::Torque() const
 {
     return Torque_;
@@ -58,6 +63,11 @@ inline Foam::scalar Foam::fv::wtActuatorSource::Torque() const
 inline Foam::scalar Foam::fv::wtActuatorSource::Uref() const
 {
     return Uref_;
+}
+
+inline Foam::scalar Foam::fv::wtActuatorSource::Uinf() const
+{
+    return Uinf_;
 }
 
 inline Foam::dictionary Foam::fv::wtActuatorSource::getCoeffsDict() const

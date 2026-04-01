@@ -34,6 +34,7 @@ License
 #include "fvCFD.H"
 #include "geometricOneField.H"
 #include "addToRunTimeSelectionTable.H"
+#include "interpolationTable.H"
 
 #include "wtActuatorSourceTemplates.C"
 
@@ -50,11 +51,19 @@ namespace Foam
     }
 }
 
+const Foam::Enum<Foam::fv::wtActuatorSource::rotType>
+Foam::fv::wtActuatorSource::rotType_
+({
+    { wtActuatorSource::ROT_NULL, "null" },
+    { wtActuatorSource::ROT_CONST, "const" },
+    { wtActuatorSource::ROT_INTEG, "integ" },
+});
+
 const Foam::Enum<Foam::fv::wtActuatorSource::meshType>
 Foam::fv::wtActuatorSource::meshType_
 ({
     { wtActuatorSource::MESH_RINGS, "rings" },
-    // { wtActuatorSource::MESH_LINES, "lines" },
+    { wtActuatorSource::MESH_LINES, "lines" },
 });
 
 const Foam::Enum<Foam::fv::wtActuatorSource::inductionType>
@@ -97,19 +106,19 @@ void Foam::fv::wtActuatorSource::computeMinSep()
         // Select the minimum minSep_ among all processors
         reduce(minSep_ , minOp<scalar>());
     }
-    Info << "Minimum horizontal cell centers separation: " << minSep_ << endl;
+    Info << "    - Minimum horizontal cell centers separation: " << minSep_ << endl;
 }
 
 void Foam::fv::wtActuatorSource::constructNodesList_rings()
 {
-    Info << "* Rings node distribution" << endl;
-    scalar nodesCellsRatio = readScalar(coeffs_.lookup("nodesCellsRatio"));
-    scalar rThicknessCellsizeRatio = readScalar(coeffs_.lookup("rThicknessCellsizeRatio"));
+    Info << "    - Rings node distribution" << endl;
+    scalar nodesCellsRatio = readScalar(coeffs_.subOrEmptyDict("ringsParam").lookup("nodesCellsRatio"));
+    scalar rThicknessCellsizeRatio = readScalar(coeffs_.subOrEmptyDict("ringsParam").lookup("rThicknessCellsizeRatio"));
 
     // Estimate the number of nodes in the actuator mesh
     scalar cellsInAd = diskArea_ / pow(minSep_, 2);
     label estimatedNodes = nodesCellsRatio * cellsInAd + 0.5;
-    Info << "Estimated number of AD nodes: " << estimatedNodes << endl;
+    Info << "       Estimated number of AD nodes: " << estimatedNodes << endl;
 
     scalar secArea = diskArea_ / estimatedNodes; // Target area corresponding to each node
     scalar rInt = sqrt(secArea / M_PI); // Inner radius of inner ring
@@ -119,7 +128,7 @@ void Foam::fv::wtActuatorSource::constructNodesList_rings()
     scalar ringThickness = rThicknessCellsizeRatio * minSep_;
 
     label numberRings = (rExt - rInt) / ringThickness + 0.5; // Number of rings
-    Info << "Number of rings: " << numberRings << endl;
+    Info << "       Number of rings: " << numberRings << endl;
 
     // Correct ringThickness according to numberRings
     ringThickness = (rExt - rInt) / numberRings;
@@ -127,7 +136,7 @@ void Foam::fv::wtActuatorSource::constructNodesList_rings()
     nodesNumber_ = 0;       // Nodes in the actuator mesh (to be accumulated)
     label nodesRing ;      // Nodes in each ring
     scalar dTitaRing;       // Angle between nodes in ring [deg]
-    scalar titaNode_Rad;    // Angular position of a node [rad] (couter-clockwise from the positive z as seen from the front)
+    scalar thetaNode_rad;    // Angular position of a node [rad] (couter-clockwise from the positive z as seen from the front)
     scalar areaNodeRing;    // Area of each ring nodes
 
     // Center node first
@@ -152,16 +161,79 @@ void Foam::fv::wtActuatorSource::constructNodesList_rings()
         // Fill nodesList_
         for (label nodeIterator = 0; nodeIterator < nodesRing; nodeIterator++)
         {
-            titaNode_Rad = 2 * M_PI * (dTitaRing * (nodeIterator)) / 360;
-            vector nodePolarCoord = vector(rMedRing, titaNode_Rad, areaNodeRing);
+            thetaNode_rad = 2 * M_PI * (dTitaRing * (nodeIterator)) / 360;
+            vector nodePolarCoord = vector(rMedRing, thetaNode_rad, areaNodeRing);
             nodesList_.append(nodePolarCoord); // (R, Theta, Area) list
         }
         rMedRing += ringThickness;
     }
-    Info << "Final number of AD nodes: " << nodesNumber_ << endl;
+    Info << "       Final number of AD nodes: " << nodesNumber_ << endl;
 
     nodesPosList_.reserve(nodesNumber_);
     nodesCellId_.reserve(nodesNumber_);
+}
+
+void Foam::fv::wtActuatorSource::constructNodesList_lines()
+{
+    Info << "    - Lines node distribution" << endl;
+
+    label nodesPerLine = readScalar(coeffs_.subOrEmptyDict("linesParam").lookup("nodesPerLine"));
+    label linesNumber = readScalar(coeffs_.subOrEmptyDict("linesParam").lookup("linesNumber"));
+    Info << "       Nodes per line: " << nodesPerLine << endl;
+    Info << "       Number of lines: " << linesNumber << endl;
+    
+    scalar delta = maxR_ / (nodesPerLine - 0.5);    // Distance between nodes in same line
+    scalar dTitaRing = 2 * M_PI / linesNumber;         // Angle between lines [rad]
+
+    // Set up a list with unique node radial positions
+    for(label i = 0; i < nodesPerLine; i++)
+    {
+        rNodeList_.append(delta * i);
+    }
+
+    nodesNumber_ = 0;       // Nodes in the actuator mesh (to be accumulated)
+
+    // Central node first
+    scalar areaNode = M_PI * pow(delta / 2, 2); // Area corresponding to central node
+    vector nodePolarCoord = vector(0, 0, areaNode);
+    nodesList_.append(nodePolarCoord);
+    nodesNumber_++;
+
+    for(label line = 0; line < linesNumber; line++)
+    {
+        scalar thetaNode_rad = dTitaRing * line;    // Angular position of each node [rad] (couter-clockwise from the positive z as seen from the front)
+        for(label i = 1; i < nodesPerLine; i++)
+        {
+            scalar rNode = rNodeList_[i];
+            areaNode = M_PI * (pow(rNode + (delta / 2), 2) - pow(rNode - (delta / 2), 2)) / linesNumber; // Area correspondinr to each nodes
+            
+            vector nodePolarCoord = vector(rNode, thetaNode_rad, areaNode);
+            nodesList_.append(nodePolarCoord); // (R, Theta, Area) list
+            nodesNumber_++;
+        }
+    }
+
+    nodesPosList_.reserve(nodesNumber_);
+    nodesCellId_.reserve(nodesNumber_);
+}
+
+void Foam::fv::wtActuatorSource::initializeEpsilonScaling()
+{
+        Info << "    - epsilonScaling active" << endl;
+        fileName scalingFileName;
+//         coeffs_.lookup("scalingTable") >> scalingFileName;
+// distribParam_(coeffs_.subOrEmptyDict("distribParam"));
+
+        coeffs_.subOrEmptyDict("distribParam").lookup("scalingTable") >> scalingFileName;
+
+        interpolationTable<scalar> epsScale_(scalingFileName);
+
+        espScale_.reserve(nodesNumber_);
+
+        forAll(nodesList_, n)
+        {
+            espScale_[n] = std::cbrt(epsScale_.interpolateValue(nodesList_[n][0] / maxR_));
+        }
 }
 
 void Foam::fv::wtActuatorSource::checkIfParted()
@@ -264,27 +336,36 @@ Foam::fv::wtActuatorSource::wtActuatorSource(
         yaw_(coeffs_.lookupOrDefault("yaw", 360.0)),
         density_(coeffs_.lookupOrDefault("density", 1.225)),
         cellSize_(coeffs_.lookupOrDefault("cellSize", 1000)),
-        calibration_(readBool(coeffs_.lookup("calibration"))),
-        UdCorrection_(readBool(coeffs_.lookup("UdCorrection"))),
+        calibration_(coeffs_.lookupOrDefault<bool>("calibration", false)),
+        UdCorrection_(coeffs_.lookupOrDefault<bool>("UdCorrection", false)),
         saveLevel_(coeffs_.lookupOrDefault("saveLevel", 1)),
         saveNodeForces_(coeffs_.lookupOrDefault("saveNodeForces", false)),
-        orientRadiusFrac_(coeffs_.lookupOrDefault("orientationRadiusFrac", 1.0)),
-        selectRadialBoundFrac_(coeffs_.lookupOrDefault("selectRadialBoundFrac", 1.15)),
-        selectAxialBoundFrac_(coeffs_.lookupOrDefault("selectAxialBoundFrac", 3.0)),
-        unifWeight_(readBool(coeffs_.lookup("unifWeight"))),
-        axialWeight_(readBool(coeffs_.lookup("axialWeight"))),
-        sphereWeight_(readBool(coeffs_.lookup("sphereWeight"))),
-        sigmaAxialWeightFrac_(coeffs_.lookupOrDefault("sigmaAxialWeightFrac", 1.0)),
-        maxRweightFrac_(coeffs_.lookupOrDefault("maxRweight", 1.0)),
-        sigmaSphereWeightFrac_(coeffs_.lookupOrDefault("sigmaSphereWeightFrac", 0.5)),
-        sphereTolDiskFrac_(coeffs_.lookupOrDefault("sphereTolDiskFrac", 1.15)),
-        distribGaussianCoeffs_(coeffs_.lookup("distribGaussianCoeffs")
-)
+        orientRadiusFrac_(coeffs_.lookupOrDefault("orientationRadiusFrac", 1.0))
 {
-    Info << "    - creating wtActuatorSource: " << name_ << endl;
+    // Info << "    - creating wtActuatorSource: " << name_ << endl;
 
     coeffs_.lookup("fieldNames") >> fieldNames_;
     applied_.setSize(fieldNames_.size(), false);
+
+    // Weighting parameters
+    dictionary weightParam_(coeffs_.subOrEmptyDict("weightParam"));
+    unifWeight_ = weightParam_.lookupOrDefault<bool>("unifWeight", false);
+    axialWeight_ = weightParam_.lookupOrDefault<bool>("axialWeight", true);
+    sphereWeight_ = weightParam_.lookupOrDefault<bool>("sphereWeight", false);
+    sigmaAxialWeightFrac_ = weightParam_.lookupOrDefault("sigmaAxialWeightFrac", 2.0);
+    maxRweightFrac_ = weightParam_.lookupOrDefault("maxRweight", 1.0);
+    sigmaSphereWeightFrac_ = weightParam_.lookupOrDefault("sigmaSphereWeightFrac", 0.5);
+
+    // Actuator computations cellSet selection parameters
+    dictionary selectParam_(coeffs_.subOrEmptyDict("selectParam"));
+    selectRadialBoundFrac_ = selectParam_.lookupOrDefault("selectRadialBoundFrac", 1.15);
+    selectAxialBoundFrac_ = selectParam_.lookupOrDefault("selectAxialBoundFrac", 3.0);
+
+    // Force distribution parameters distributing nodal forces according to cells distance to node
+    dictionary distribParam_(coeffs_.subOrEmptyDict("distribParam"));
+    sphereTolDiskFrac_ = distribParam_.lookupOrDefault("sphereTolDiskFrac", 1.15);
+    distribGaussianCoeffs_ = distribParam_.lookupOrDefault<vector>("distribGaussianCoeffs", vector(1, 1, 1));
+    epsilonScaling_ = distribParam_.lookupOrDefault<bool>("epsilonScaling", false);
 
     if (yaw_ == 360) // Self orienting disk - compute uniDiskDir_ in each time step
     {
@@ -296,23 +377,28 @@ Foam::fv::wtActuatorSource::wtActuatorSource(
 
     contructWTLists();
 
+    dictionary calibParam_(coeffs_.subOrEmptyDict("calibrationParam"));
     if (calibration_)
     {
-        Uref_ = readScalar(coeffs_.lookup("Uref"));
-        interpolateWTCurves(); // What if no table?
-        coeffs_.readIfPresent("Cp", Cp_);
-        coeffs_.readIfPresent("Ct", Ct_);
-        coeffs_.readIfPresent("omega", omega_);
-        coeffs_.readIfPresent("pitch", pitch_);
+        Info << "    - CALIBRATION MODE" << endl;
+
+        Uref_ = readScalar(calibParam_.lookup("Uref"));
+        interpolateWTCurves(); // TODO: What if no table?
+        calibParam_.readIfPresent("Uinf", Uinf_);
+        calibParam_.readIfPresent("Cp", Cp_);
+        calibParam_.readIfPresent("Ct", Ct_);
+        calibParam_.readIfPresent("omega", omega_);
+        calibParam_.readIfPresent("pitch", pitch_);
         lambda_ = omega_ * maxR_ / Uref_;
 
         computeWTmagnitudes();
     }
     else
     {
-        Ct_ = coeffs_.lookupOrDefault("Ct", 8.0/9.0); // Ct is needed for the Ud correction and analytical induction
-        Cp_ = coeffs_.lookupOrDefault("Cp", 1.0/3.0); // Cp is needed for the analytical induction
+        Ct_ = calibParam_.lookupOrDefault("Ct", 8.0/9.0); // Ct is needed for the Ud correction and analytical induction
+        Cp_ = calibParam_.lookupOrDefault("Cp", 1.0/3.0); // Cp is needed for the analytical induction
     }
+    Ct_rated_ = coeffs_.lookupOrDefault("Ct_rated", 0.8); // Ct_rated_ is needed for the generalized analytic actuatorModel
 
     checkIfParted();
 
@@ -325,11 +411,11 @@ Foam::fv::wtActuatorSource::wtActuatorSource(
     // Select which actuator mesh (e.g. rings, lines)
     switch (meshTypeSelect)
     {
-        // case MESH_LINES: // Not yet implemented
-        // {
-        //     constructNodesList_lines();
-        //     break;
-        // }
+        case MESH_LINES:
+        {
+            constructNodesList_lines();
+            break;
+        }
         case MESH_RINGS:
         default:
         {
@@ -337,7 +423,51 @@ Foam::fv::wtActuatorSource::wtActuatorSource(
         }
     }
 
+    sphereTolDisk = sphereTolDiskFrac_ * maxR_;
+    gaussianCoeff = distribGaussianCoeffs_ * minSep_; // Vector of Gaussian for force smearing (n, t, r)
+
+    if (epsilonScaling_) initializeEpsilonScaling();
+
     actuatorModel_->init();
+
+    rotType_.readIfPresent("meshRotation", coeffs_, rotTypeSelect);
+
+    // Select mesh rotation (null, constant, integ)
+    switch (rotTypeSelect)
+    {
+        case ROT_CONST:
+        {
+            Info << "    - Mesh rotation: CONST" << endl;
+            rotatingAD_ = true;
+            thetaMesh_ini = coeffs_.subOrEmptyDict("meshRotParam").lookupOrDefault("thetaMesh_ini", 0.0);
+            omegaMesh_ = coeffs_.subOrEmptyDict("meshRotParam").lookupOrDefault("omegaMesh_ini", 0.0);
+            meshRotation = &Foam::fv::wtActuatorSource::meshRotation_const;
+
+            Info << "       thetaMesh_ini: " << thetaMesh_ini  << endl;
+            Info << "       omegaMesh_: " << omegaMesh_ << endl;
+            break;
+        }
+        case ROT_INTEG:
+        {
+            Info << "    - Mesh rotation: INTEG" << endl;
+            rotatingAD_ = true;
+            thetaMesh_rad = coeffs_.subOrEmptyDict("meshRotParam").lookupOrDefault("thetaMesh_ini", 0.0);
+            omega_ = coeffs_.subOrEmptyDict("meshRotParam").lookupOrDefault("omegaMesh_ini", 0.0);
+            meshRotation = &Foam::fv::wtActuatorSource::meshRotation_integ;
+
+            Info << "       thetaMesh_rad: " << thetaMesh_rad << endl;
+            Info << "       omega_: " << omega_ << endl;
+            break;
+        }
+        case ROT_NULL:
+        default:
+        {
+            Info << "    - Mesh rotation: NULL" << endl;
+            rotatingAD_ = false;
+            thetaMesh_rad = 0;
+        }
+    }
+    Info << endl;
 
     checkData();
 
@@ -363,7 +493,7 @@ Foam::fv::wtActuatorSource::wtActuatorSource(
             outActuators2 = new std::ofstream("outActuators_extended.csv");
             (*outActuators2) << "----- wtActuator extended output file -----" << std::endl;
             (*outActuators2) << "Actuator name, time [s], Thrust_actuator [N], Torque_actuator [Nm], "
-                             << "Thrust_nodes [N], Torque_nodes [Nm]" << std::endl;
+                             << "Thrust_nodes [N], Torque_nodes [Nm], meshRot [rad]" << std::endl;
             outActuators2->close();
             delete outActuators2;
 
@@ -381,7 +511,8 @@ Foam::fv::wtActuatorSource::wtActuatorSource(
 
             outNodes = new std::ofstream(rootDir + "/" + name_ + "_nodeForces.csv");
             (*outNodes) << "Actuator name, time [s], node#, r [m], theta [rad], area [m^2], x [m], y [m], z [m], ";
-            (*outNodes) << "Unode_x [m/s], Unode_y [m/s], Unode_z [m/s], Faero_n [N/m^2], Faero_t [N/m^2]" << std::endl;
+            (*outNodes) << "Unode_x [m/s], Unode_y [m/s], Unode_z [m/s], ";
+            (*outNodes) << "fn [(N/m^2)/(kg/m^3)], ft [(N/m^2)/(kg/m^3)]" << std::endl;
         }
     }
 }
@@ -405,7 +536,7 @@ void Foam::fv::wtActuatorSource::addSup(
             Usource);
 
         firstStep_ = false;
-        }
+    }
 }
 
 // TODO: make class actuatorModel templated on RhoFieldType

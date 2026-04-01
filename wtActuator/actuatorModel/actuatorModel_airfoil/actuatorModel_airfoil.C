@@ -84,7 +84,7 @@ void Foam::actuatorModel_airfoil::airfoilAnglesCoeffs(scalar &rNode, scalar &phi
     scalar invDr = 0.0;
     blade_->interpolate(rNode, twist, chord, i1, i2, invDr);
 
-    beta = rotor_.pitch() + twist; //AO: pitch debería ser global
+    beta = degToRad(rotor_.pitch()) + twist; //AO: pitch debería ser global
 
     if (rotor_.omega() < 0)
     {
@@ -125,7 +125,8 @@ void Foam::actuatorModel_airfoil::applyForce(
     for(label node = 0; node < rotor_.nodesNumber(); node++)
     {
         scalar rNode = rotor_.nodesList()[node][0];
-        if (abs(rNode) < VSMALL) continue; // No forces at central node
+
+        if (fabs(rNode) < VSMALL * rotor_.maxR()) continue; // No forces at central node
 
         scalar titaNode_rad = rotor_.nodesList()[node][1];
         scalar areaNode = rotor_.nodesList()[node][2];
@@ -148,7 +149,7 @@ void Foam::actuatorModel_airfoil::applyForce(
 
         // Reference aerodynamical force [N]
         scalar solidity;
-        if (abs(rNode) < VSMALL) solidity = 1;
+        if (fabs(rNode) < VSMALL * rotor_.maxR()) solidity = 1;
         else solidity = chord * rotor_.bladesNumber() / (2 * M_PI * rNode);
 
         scalar Faero = 0.5 * pow(mag(Urel), 2) * solidity * areaNode;

@@ -67,6 +67,7 @@ SourceFiles
 #include "Enum.H"
 #include <fstream>
 #include <ostream>
+// #include "uniformInterpolationTable.H"  
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -92,10 +93,21 @@ public:
 
     // // Public Enumerations
     //- Options for the actuator mesh
+    enum rotType
+    {
+        ROT_NULL,
+        ROT_CONST,
+        ROT_INTEG
+    };
+
+    //- Names for mesh rotation
+    static const Enum<rotType> rotType_;
+
+    //- Options for the actuator mesh
     enum meshType
     {
-        MESH_RINGS
-        // MESH_LINES
+        MESH_RINGS,
+        MESH_LINES
     };
 
     //- Names for actuator mesh
@@ -116,6 +128,9 @@ protected:
     // Protected Data
         //- actuatorModel type
         autoPtr<actuatorModel> actuatorModel_;
+
+        //- rotation type
+        rotType rotTypeSelect;
 
         //- mesh type
         meshType meshTypeSelect;
@@ -138,11 +153,17 @@ protected:
         //- disk cell ID
         label diskCellId_;
 
+        // Mesh rotation speed for constant rotating mesh function
+        scalar omegaMesh_;
+
         // Yaw angle with respect to x-axis (yaw == 360 means self orientation)
         scalar yaw_;
 
         //- Wind turbine reference velocity
         scalar Uref_;
+
+        //- Unperturbed wind velocity
+        scalar Uinf_;
 
         //- Power from table interpolation
         scalar Power_;
@@ -155,6 +176,9 @@ protected:
 
         //- Thrust coefficient from table interpolation
         scalar Ct_;
+
+        //- Rated thrust coefficient from configuration
+        scalar Ct_rated_;
 
         //- Torque from table interpolation
         scalar Torque_;
@@ -175,7 +199,7 @@ protected:
         scalar cellSize_;
         scalar minSep_;
 
-        //- Parameters
+        // //- Parameters
         scalar orientRadiusFrac_;       // Diameter of sphere (wrt maxR_) where flow direction is computed
         scalar selectRadialBoundFrac_;  // Diameter of sphere (wrt maxR_) where actuator cells are selected
         scalar selectAxialBoundFrac_;   // Distance to actuator plane (wrt minSep_) that limits actuator cells selected
@@ -187,12 +211,22 @@ protected:
         scalar sigmaSphereWeightFrac_;  // Width of sphereWeight Gaussian (wrt maxR_)
         scalar sphereTolDiskFrac_;      // Max radial distance where cells are considered for force smearing wrt maxR_
         vector distribGaussianCoeffs_;  // Width of Gaussians for force smearing wrt minSep_ (n,t,r)
-
-        // Has the AD moved since the last time step (not yet implemented)
-        bool movingAD_ = false;
+        // uniformInterpolationTable<scalar> epsilonTable_;
+        bool epsilonScaling_;           // Scaling of smearing factor
+        DynamicList<scalar> espScale_;  // Scaling factor for each node
 
         // First iteration
         bool firstStep_ = true;
+
+        // Has the actuator moved since the last time step
+        bool movingAD_ = false;
+
+        // Has the mesh rotated since the last time step
+        bool rotatingAD_ = false;
+
+        // Mesh rotation angle [rad]
+        scalar thetaMesh_ini = 0;
+        scalar thetaMesh_rad = 0;
 
         // Actuator radius
         scalar maxR_;
@@ -255,6 +289,9 @@ protected:
         // Has this processor cells of the topoSet?
         bool hasTopoCells_;
 
+        scalar sphereTolDisk;
+        vector gaussianCoeff;
+
     // Protected Member Functions
         //- Check data
         void checkData() const;
@@ -267,13 +304,22 @@ protected:
 
         // Nodes list construction
         void constructNodesList_rings();
+        void constructNodesList_lines();
+
+        // Smearing factor scaling initialization
+        void initializeEpsilonScaling();
+
+        // Mesh rotation functions
+        void (Foam::fv::wtActuatorSource::*meshRotation)(const scalar t, const scalar dt);
+        void meshRotation_const(const scalar t, const scalar dt);
+        void meshRotation_integ(const scalar t, const scalar dt);
 
         // Nodes coordinates list construction
         void constructNodesPosList();
 
         vector computeNodePosition(
             scalar rNode,
-            scalar titaNode_Rad
+            scalar thetaNode_rad
         );
 
         void computeDiskOrientation(const vectorField &U);
@@ -376,11 +422,17 @@ public:
             //- Return rotor thrust coeff
             inline scalar Ct() const;
 
+            //- Return rated rotor thrust coeff
+            inline scalar Ct_rated() const;
+
             //- Return rotor Torque
             inline scalar Torque() const;
 
             //- Return rotor Uref
             inline scalar Uref() const;
+
+            //- Return rotor Uinf
+            inline scalar Uinf() const;
 
             //- Return fvOptions coeff dictionary
             inline dictionary getCoeffsDict() const;

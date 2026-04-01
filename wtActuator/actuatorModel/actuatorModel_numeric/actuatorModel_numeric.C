@@ -243,7 +243,7 @@ void Foam::actuatorModel_numeric::applyForce(
 
         vector uniBladeDir, uniThetaDir;
         tensor iTransform;
-        if (fabs(rNode) < VSMALL)
+        if (fabs(rNode) < VSMALL * rotor_.maxR())
         {
             uniThetaDir = {0, 0, 1};
             iTransform = tensor::one;
