@@ -165,10 +165,10 @@ disk0
     }
 
     // Input tables
-    #include "./constant/wtCurvesTable_NREL5MW.txt"     // Turbine global characteristics table
+    #include "./constant/wtCurvesTable_NREL5MW.txt"     // Turbine global characteristics table (Mostly Mandatory)
     #include "./constant/blade_NREL5MW.txt"             // Blade characteristics table (Only needed for airfoil actuatorModel)
-    #include "./constant/forcesRadialDistribution.txt"  // Forces distribution table (Needed for numeric and adaptive
-                                                        // actuatorMode)
+    #include "./constant/forcesRadialDistribution.txt"  // Forces distribution table (Only needed for numeric and adaptive
+                                                        // actuatorModel)
 
     // Output 
     // saveLevel                   0;  // no outActuators file

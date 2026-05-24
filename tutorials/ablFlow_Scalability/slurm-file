@@ -4,9 +4,9 @@
 
 #SBATCH --job-name=wtActuatorFOAM-abl
 #SBATCH --nodes=1
-#SBATCH --partition=testing
+#SBATCH --partition=batch
 #SBATCH --exclusive
-#SBATCH --time=15:00
+#SBATCH --time=1-00:00:00
 
 # Load modules and OpenFOAM environment
 module purge
