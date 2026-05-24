@@ -1,27 +1,32 @@
+# Ignore VS code settings
 settings.json
 
 # Ignore compilation files
-wtActuator/Make/linux64GccDPInt32Opt/*
 wtActuator/lnInclude/*
+wtActuator/Make/linux*Opt
 
-# Folder for local testing
-sandbox/*
+# Ignore entire sandbox directory for local testing
+sandbox/
 
-# Ignore everything in 'tutorials' folder
-tutorials/*
+# Ignore lnInclude (usually a generated symlink directory in OpenFOAM)
+wtActuator/lnInclude/
 
-# Except for 'system' etc
-!tutorials/*/system/
-!tutorials/*/constant/
-!tutorials/*/0.orig/
+# ============================================================
+# Tutorials directories: keep only the initial case 
+# files/directories, ignore everything else
+# ============================================================
+# First, ignore everything inside each tutorial subdirectory
+tutorials/*/*
+
+# Then explicitly un‑ignore the initial case items
+!tutorials/*/0.orig
 !tutorials/*/Allclean
-!tutorials/*/Allrun
+!tutorials/*/Allrun_parallel
+!tutorials/*/Allrun_serial
+!tutorials/*/constant/
+!tutorials/*/system/
+!tutorials/*/readme.md
+!tutorials/*/slurm-file
 
-# Additionally, if there are files inside 'tutorials/subfolders' that should be included, you need to unignore those as well
-!tutorials/*/system/**
-!tutorials/*/constant/**
-!tutorials/*/0.orig/**
-
-# Except for mesh files
-tutorials/*/constant/polyMesh
-
+# Exclude polyMesh directories inside any constant folder
+**/constant/polyMesh/
