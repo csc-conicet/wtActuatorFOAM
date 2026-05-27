@@ -99,9 +99,9 @@ Then the nodal forces of each combination need to be averaged for each radial po
 ## Tutorials
 
 1. [**uniformFlow_2Turbines_mini:**](./tutorials/uniformFlow_2Turbines_mini) Minimalist case for testing purposes (2 turbines.)
-1. **uniformFlow_2Turbines:** 2 turbines case.
-1. **uniformFlow_2Turbines_AL:** 2 turbines case (AL model.)
-1. **ablFlow_Scalability:** Extremely large case designed to test the library's scalability behaviour.
+1. [**uniformFlow_2Turbines:**](./tutorials/uniformFlow_2Turbines) 2 turbines case.
+1. [**uniformFlow_2Turbines_AL:**](./tutorials/uniformFlow_2Turbines_AL) 2 turbines case (AL model.)
+1. [**ablFlow_Scalability:**](./tutorials/ablFlow_Scalability) Extremely large case designed to test the library's scalability behaviour.
 
 
 ## Developers
