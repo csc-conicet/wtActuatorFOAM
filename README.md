@@ -39,7 +39,7 @@ Some of the characteristics of different actuator models are summarized in the t
   - fixed angular speed.
   - variable angular speed from turbine specifications.
 
-### Other festures
+### Other features
 - Multiple induction methods.
 - Root correction: Glauert and Sorensen methods.
 - Tip correction: Prandtl, Glauert and Shen methods (AD.) Variable scaling of smearing factor (AL.)
@@ -69,7 +69,7 @@ The `wtActuator` class, which represents each turbine, is implemented as an `fvO
 
 To run a case, you need to add `wtActuator` to the `libs` entry in the `controlDict` file.
 
-Refer to the `fvOptions` folder in the `system` directory of each tutorial case for configuration details. Each `wtActuator` object is associated to a cellSet defined in the `topoSetDict` of the case.
+Refer to the `fvOptions` file in the `system` directory of each tutorial case for configuration details. Each `wtActuator` object is associated to a cellSet defined in the `topoSetDict` of the case.
 
 Each tutorial case has `./Allrun_(serial|parallel)` files with the sequence for running a case. The parallel version requires OpenFOAM to be installed with the proper MPI libraries.
 
@@ -95,6 +95,13 @@ Additionally when the `saveNodeForces` flag is set `true` a file per `wtActuator
 
 Some actuator models (`numeric` and `adaptive`) need an input table with the radial distribution of forces. This table can be constructed running other actuators for diffent combinations of turbine reference wind speed and actual undisturbed wind speed. The option `saveNodeForces` in the `fvOptions` file must be set to `true`.
 Then the nodal forces of each combination need to be averaged for each radial position to get the corresponding value in the table.
+
+## Tutorials
+
+1. [**uniformFlow_2Turbines_mini:**](./tutorials/uniformFlow_2Turbines_mini) Minimalist case for testing purposes (2 turbines.)
+1. [**uniformFlow_2Turbines:**](./tutorials/uniformFlow_2Turbines) 2 turbines case.
+1. [**uniformFlow_2Turbines_AL:**](./tutorials/uniformFlow_2Turbines_AL) 2 turbines case (AL model.)
+1. [**ablFlow_Scalability:**](./tutorials/ablFlow_Scalability) Extremely large case designed to test the library's scalability behaviour.
 
 
 ## Developers
