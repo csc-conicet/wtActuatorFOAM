@@ -84,7 +84,8 @@ Global information of all the `wtActuator`s in the case are combined in unique f
 |:-------------:|----------------------- |
 |      0        | no outActuators file   |
 |      1        | outActuators.csv file: <br> `Actuator name, time [s], Uref [m/s], Ud [m/s], Cp, Ct, omega [rad/s], pitch [deg], Power(Uref, Cp) [W], Thrust(Uref, Ct) [N], Torque [Nm]` |  
-|      2        | outActuators_extended.csv file (thurst and toque accumulated at nodes): <br> `Actuator name, time [s], Thrust_actuator [N], Torque_actuator [Nm], Thrust_nodes [N], Torque_nodes [Nm], meshRot [rad]` |
+|      2        | outActuators.csv + outActuators_extended.csv files (thurst and toque also accumulated at nodes): <br> `Actuator name, time [s], meshRot [rad], Thrust_actuator [N], Torque_actuator [Nm], Thrust_nodes [N], Torque_nodes [Nm]`|
+|      3        | outActuators.csv + outActuators_extended.csv files (thurst and toque also accumulated at nodes and cells): <br> `Actuator name, time [s], meshRot [rad], Thrust_actuator [N], Torque_actuator [Nm], Thrust_nodes [N], Torque_nodes [Nm], Thrust_cells [N], Torque_cells [Nm]`|
 
 Additionally when the `saveNodeForces` flag is set `true` a file per `wtActuator` is saved in the `outActuatorsForces` directory with information on each actuator node and `writeTime`:  
         `Actuator name, time [s], node#, r [m], theta [rad], area [m^2], x [m], y [m], z [m], Unode_x [m/s], Unode_y [m/s], Unode_z [m/s],Faero_n [N/m^2], Faero_t [N/m^2]`

@@ -175,9 +175,12 @@ disk0
     saveLevel                   1;  // outActuators.csv file: 
                                         // Actuator name, time [s], Uref [m/s], Ud [m/s], Cp, Ct, omega [rad/s],  
                                         // pitch [deg], Power(Uref, Cp) [W], Thrust(Uref, Ct) [N], Torque [Nm]
-    // saveLevel                   2;  // outActuators_extended.csv thurst and toque accumulated at nodes:
-                                        // Actuator name, time [s], Thrust_actuator [N], Torque_actuator [Nm],
-                                        // Thrust_nodes [N], Torque_nodes [Nm], meshRot [rad]
+    // saveLevel                   2; // outActuators.csv + outActuators_extended.csv thurst and toque accumulated at nodes:
+                                        // Actuator name, time [s], meshRot [rad], Thrust_actuator [N], Torque_actuator [Nm],
+                                        // Thrust_nodes [N], Torque_nodes [Nm]
+    // saveLevel                   3; // outActuators.csv + outActuators_extended.csv thurst and toque accumulated at nodes and cells:
+                                        // Actuator name, time [s], meshRot [rad], Thrust_actuator [N], Torque_actuator [Nm],
+                                        // Thrust_nodes [N], Torque_nodes [Nm], Thrust_cells [N], Torque_cells [Nm]
     saveNodeForces              false;   // Save forces computed at each node [true, false] 
                                         // If calibration = true, this should be also true
 }

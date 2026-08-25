@@ -492,8 +492,14 @@ Foam::fv::wtActuatorSource::wtActuatorSource(
         {
             outActuators2 = new std::ofstream("outActuators_extended.csv");
             (*outActuators2) << "----- wtActuator extended output file -----" << std::endl;
-            (*outActuators2) << "Actuator name, time [s], Thrust_actuator [N], Torque_actuator [Nm], "
-                             << "Thrust_nodes [N], Torque_nodes [Nm], meshRot [rad]" << std::endl;
+            (*outActuators2) << "Actuator name, time [s], meshRot [rad], Thrust_actuator [N], Torque_actuator [Nm], "
+                             << "Thrust_nodes [N], Torque_nodes [Nm]";
+                             
+            if (saveLevel_ > 2)
+            {
+                (*outActuators2) << ", Thrust_cells [N], Torque_cells [Nm]";
+            }
+            (*outActuators2) << std::endl;
             outActuators2->close();
             delete outActuators2;
 

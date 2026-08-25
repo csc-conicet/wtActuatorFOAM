@@ -344,6 +344,11 @@ protected:
 
         void computeWTmagnitudes();
 
+        void computeCellMagnitudes(
+            vectorField &Usource,
+            scalar &Thrust_cells, scalar &Torque_cells
+        );
+
         //- Add force to the UEqn
         template <class RhoFieldType>
         void addActuatorForce

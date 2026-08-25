@@ -279,6 +279,24 @@ void Foam::fv::wtActuatorSource::computeWTmagnitudes()
     Torque_ = (omega_ < VSMALL) ? 0.0 : Power_ / omega_;
 }
 
+
+void Foam::fv::wtActuatorSource::computeCellMagnitudes(
+    vectorField &Usource,
+    scalar &Thrust_cells, scalar &Torque_cells
+)
+{
+    vector Usource_cell;
+    vector arrow;
+    forAll(diskCells_, c)
+    {
+        Usource_cell = Usource[diskCells_[c]];
+        arrow = mesh().cellCentres()[diskCells_[c]] - diskPoint_; // cell position relative to actuator center
+        
+        Thrust_cells += uniDiskDir_ & Usource_cell;
+        Torque_cells += uniDiskDir_ & (arrow ^ Usource_cell);
+    }
+}
+
 vector Foam::fv::wtActuatorSource::getNodeVelocity(
     label node,
     const volVectorField &U,
@@ -524,12 +542,25 @@ void Foam::fv::wtActuatorSource::addActuatorForce(
         }
         if (saveLevel_ > 1)
         {
-            // "Actuator_name, time [s], Thrust_actuator [N], Torque_actuator [Nm], "
-            // "Thrust_nodes [N], Torque_nodes [Nm], meshRot [rad]" << std::endl;
-            (*outActuators2) << name() << "," << t << ","
+            // "Actuator_name, time [s], meshRot [rad], Thrust_actuator [N], Torque_actuator [Nm], "
+            // "Thrust_nodes [N], Torque_nodes [Nm]"
+            (*outActuators2) << name() << "," << t << "," << thetaMesh_rad << ","
                              << Thrust_ * density_ << "," << Torque_ * density_ << ","
-                             << Thrust_nodes * density_ << "," << Torque_nodes * density_ << ","
-                             << thetaMesh_rad << std::endl;
+                             << Thrust_nodes * density_ << "," << Torque_nodes * density_;
+
+            if (saveLevel_ > 2)
+                {
+                    scalar Thrust_cells = 0.0; // Thrust resulting from cell forces
+                    scalar Torque_cells = 0.0; // Torque resulting from cell forces
+
+                    computeCellMagnitudes(Usource, Thrust_cells, Torque_cells);
+
+                    // "Thrust_cells [N], Torque_cells [Nm]" 
+                    (*outActuators2) << "," << Thrust_cells * density_ << "," << Torque_cells * density_;
+                }
+
+            // << std::endl;
+            (*outActuators2) << std::endl;
         }
     }
 
