@@ -264,6 +264,7 @@ protected:
         //- Output level
         int saveLevel_;
         bool saveNodeForces_;
+        bool simContinuation_;
 
         //- Wind turbine Uref curve list
         List<scalar> wtUrefList_;

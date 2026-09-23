@@ -340,6 +340,7 @@ Foam::fv::wtActuatorSource::wtActuatorSource(
         UdCorrection_(coeffs_.lookupOrDefault<bool>("UdCorrection", false)),
         saveLevel_(coeffs_.lookupOrDefault("saveLevel", 1)),
         saveNodeForces_(coeffs_.lookupOrDefault("saveNodeForces", false)),
+        simContinuation_(coeffs_.lookupOrDefault("simContinuation", false)),
         orientRadiusFrac_(coeffs_.lookupOrDefault("orientationRadiusFrac", 1.0))
 {
     // Info << "    - creating wtActuatorSource: " << name_ << endl;
@@ -478,30 +479,36 @@ Foam::fv::wtActuatorSource::wtActuatorSource(
         // to write results.
         if (saveLevel_)
         {
-            outActuators = new std::ofstream("outActuators.csv");
-            (*outActuators) << "----- wtActuator output file -----" << std::endl;
-            (*outActuators) << "Actuator name, time [s], Uref [m/s], Ud [m/s], Cp, Ct, omega [rad/s], pitch [deg], "
-                            << "Power(Uref, Cp) [W], Thrust(Uref, Ct) [N], Torque [Nm]" << std::endl;
-            outActuators->close();
-            delete outActuators;
+            if (!simContinuation_ or !isFile("outActuators.csv"))
+            {
+                outActuators = new std::ofstream("outActuators.csv");
+                (*outActuators) << "----- wtActuator output file -----" << std::endl;
+                (*outActuators) << "Actuator name, time [s], Uref [m/s], Ud [m/s], Cp, Ct, omega [rad/s], pitch [deg], "
+                                << "Power(Uref, Cp) [W], Thrust(Uref, Ct) [N], Torque [Nm]" << std::endl;
+                outActuators->close();
+                delete outActuators;
+            }
 
             // Reopen outActuators.csv in append mode
             outActuators = new std::ofstream("outActuators.csv", std::ios::app);
         }
         if (saveLevel_ > 1)
         {
-            outActuators2 = new std::ofstream("outActuators_extended.csv");
-            (*outActuators2) << "----- wtActuator extended output file -----" << std::endl;
-            (*outActuators2) << "Actuator name, time [s], meshRot [rad], Thrust_actuator [N], Torque_actuator [Nm], "
-                             << "Thrust_nodes [N], Torque_nodes [Nm]";
-                             
-            if (saveLevel_ > 2)
+            if (!simContinuation_ or !isFile("outActuators_extended.csv"))
             {
-                (*outActuators2) << ", Thrust_cells [N], Torque_cells [Nm]";
+                outActuators2 = new std::ofstream("outActuators_extended.csv");
+                (*outActuators2) << "----- wtActuator extended output file -----" << std::endl;
+                (*outActuators2) << "Actuator name, time [s], meshRot [rad], Thrust_actuator [N], Torque_actuator [Nm], "
+                                << "Thrust_nodes [N], Torque_nodes [Nm]";
+                                
+                if (saveLevel_ > 2)
+                {
+                    (*outActuators2) << ", Thrust_cells [N], Torque_cells [Nm]";
+                }
+                (*outActuators2) << std::endl;
+                outActuators2->close();
+                delete outActuators2;
             }
-            (*outActuators2) << std::endl;
-            outActuators2->close();
-            delete outActuators2;
 
             // Reopen outActuators_extended.csv in append mode
             outActuators2 = new std::ofstream("outActuators_extended.csv", std::ios::app);
@@ -515,10 +522,17 @@ Foam::fv::wtActuatorSource::wtActuatorSource(
                 mkDir(rootDir);
             }
 
-            outNodes = new std::ofstream(rootDir + "/" + name_ + "_nodeForces.csv");
-            (*outNodes) << "Actuator name, time [s], node#, r [m], theta [rad], area [m^2], x [m], y [m], z [m], ";
-            (*outNodes) << "Unode_x [m/s], Unode_y [m/s], Unode_z [m/s], ";
-            (*outNodes) << "fn [(N/m^2)/(kg/m^3)], ft [(N/m^2)/(kg/m^3)]" << std::endl;
+            if (!simContinuation_ or !isFile(rootDir + "/" + name_ + "_nodeForces.csv"))
+            {
+                outNodes = new std::ofstream(rootDir + "/" + name_ + "_nodeForces.csv");
+                (*outNodes) << "Actuator name, time [s], node#, r [m], theta [rad], area [m^2], x [m], y [m], z [m], ";
+                (*outNodes) << "Unode_x [m/s], Unode_y [m/s], Unode_z [m/s], ";
+                (*outNodes) << "fn [(N/m^2)/(kg/m^3)], ft [(N/m^2)/(kg/m^3)]" << std::endl;
+            }
+            else
+            {
+                outNodes = new std::ofstream(rootDir + "/" + name_ + "_nodeForces.csv", std::ios::app);
+            }
         }
     }
 }

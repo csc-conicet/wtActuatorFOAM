@@ -87,8 +87,10 @@ Global information of all the `wtActuator`s in the case are combined in unique f
 |      2        | outActuators.csv + outActuators_extended.csv files (thurst and toque also accumulated at nodes): <br> `Actuator name, time [s], meshRot [rad], Thrust_actuator [N], Torque_actuator [Nm], Thrust_nodes [N], Torque_nodes [Nm]`|
 |      3        | outActuators.csv + outActuators_extended.csv files (thurst and toque also accumulated at nodes and cells): <br> `Actuator name, time [s], meshRot [rad], Thrust_actuator [N], Torque_actuator [Nm], Thrust_nodes [N], Torque_nodes [Nm], Thrust_cells [N], Torque_cells [Nm]`|
 
-Additionally when the `saveNodeForces` flag is set `true` a file per `wtActuator` is saved in the `outActuatorsForces` directory with information on each actuator node and `writeTime`:  
+When the `saveNodeForces` flag is set `true` a file per `wtActuator` is saved in the `outActuatorsForces` directory with information on each actuator node and `writeTime`:  
         `Actuator name, time [s], node#, r [m], theta [rad], area [m^2], x [m], y [m], z [m], Unode_x [m/s], Unode_y [m/s], Unode_z [m/s],Faero_n [N/m^2], Faero_t [N/m^2]`
+
+Additionally, the `simContinuation` flag enables a simulation to be continued by appending output files to existing ones.
 
 **Note:** the output is produced at each `writeTime`. To produce the output in a tolerance-converged simulation, an additional timestep must be run with the `stopAt writeNow;` option in the `controlDict` file.
 
