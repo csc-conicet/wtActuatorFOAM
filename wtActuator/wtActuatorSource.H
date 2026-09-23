@@ -130,13 +130,13 @@ protected:
         autoPtr<actuatorModel> actuatorModel_;
 
         //- rotation type
-        rotType rotTypeSelect;
+        rotType rotTypeSelect = ROT_NULL;
 
         //- mesh type
-        meshType meshTypeSelect;
+        meshType meshTypeSelect = MESH_RINGS;
 
         //- induction type
-        inductionType inductionTypeSelect;
+        inductionType inductionTypeSelect = INDUCTION_SORENSEN;
 
         //- Disk area
         scalar diskArea_;
