@@ -85,7 +85,8 @@ inline Foam::scalar Foam::fv::wtActuatorSource::bladesNumber() const
     return bladesNumber_;
 }
 
-inline Foam::DynamicList<Foam::vector> Foam::fv::wtActuatorSource::nodesList() const
+// inline Foam::DynamicList<Foam::vector> Foam::fv::wtActuatorSource::nodesList() const
+inline Foam::DynamicList<Foam::FixedList<Foam::scalar, 4>> Foam::fv::wtActuatorSource::nodesList() const
 {
     return nodesList_;
 }

@@ -210,6 +210,7 @@ protected:
         scalar maxRweightFrac_;         // Max radial distance where cells are considered for weighting (wrt maxR_)
         scalar sigmaSphereWeightFrac_;  // Width of sphereWeight Gaussian (wrt maxR_)
         scalar sphereTolDiskFrac_;      // Max radial distance where cells are considered for force smearing wrt maxR_
+        bool samplingPosOld_;            // AL sampling in old position instead of new (actual) position
         vector distribGaussianCoeffs_;  // Width of Gaussians for force smearing wrt minSep_ (n,t,r)
         // uniformInterpolationTable<scalar> epsilonTable_;
         bool epsilonScaling_;           // Scaling of smearing factor
@@ -227,6 +228,7 @@ protected:
         // Mesh rotation angle [rad]
         scalar thetaMesh_ini = 0;
         scalar thetaMesh_rad = 0;
+        scalar thetaMeshOld_rad = 0;
 
         // Actuator radius
         scalar maxR_;
@@ -237,17 +239,20 @@ protected:
         // Total nodes in the AD
         label nodesNumber_;
 
-        // List of vectors with cylindrical coordinates and area of nodes (r, theta, area)
-        DynamicList<vector> nodesList_;
+        // List of vectors with cylindrical coordinates and area of nodes (r, theta, area, theta_samp)
+        // DynamicList<vector> nodesList_;
+        DynamicList<FixedList<scalar, 4>> nodesList_;
 
         // List of node radial positions
         DynamicList<scalar> rNodeList_;
 
         // List of vectors with Cartesian  coordinates of nodes (x, y, z)
-        DynamicList<vector> nodesPosList_;
+        DynamicList<vector> nodesPosList_; // node positions
+        DynamicList<vector> nodesPosList_samp; // node sampling positions
 
         // List of cell ID for each node
-        DynamicList<label> nodesCellId_;
+        DynamicList<label> nodesCellId_; // node cells
+        DynamicList<label> nodesCellId_samp; // node sampling cells
 
         // Weights for Ud averaging and total weighted volume
         std::map<label, float> weightADcells_;
@@ -320,7 +325,8 @@ protected:
 
         vector computeNodePosition(
             scalar rNode,
-            scalar thetaNode_rad
+            scalar thetaNode_rad,
+            scalar thetaMesh_rad
         );
 
         void computeDiskOrientation(const vectorField &U);
@@ -450,7 +456,8 @@ public:
             inline scalar bladesNumber() const;
 
             //- Return the
-            inline DynamicList<vector> nodesList() const;
+            // inline DynamicList<vector> nodesList() const;
+            inline DynamicList<FixedList<scalar, 4>> nodesList() const;
 
             //- Return the
             inline DynamicList<vector> nodesPosList() const;

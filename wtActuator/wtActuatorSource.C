@@ -114,6 +114,7 @@ void Foam::fv::wtActuatorSource::constructNodesList_rings()
     Info << "    - Rings node distribution" << endl;
     scalar nodesCellsRatio = readScalar(coeffs_.subOrEmptyDict("ringsParam").lookup("nodesCellsRatio"));
     scalar rThicknessCellsizeRatio = readScalar(coeffs_.subOrEmptyDict("ringsParam").lookup("rThicknessCellsizeRatio"));
+    samplingPosOld_ = false;
 
     // Estimate the number of nodes in the actuator mesh
     scalar cellsInAd = diskArea_ / pow(minSep_, 2);
@@ -140,7 +141,8 @@ void Foam::fv::wtActuatorSource::constructNodesList_rings()
     scalar areaNodeRing;    // Area of each ring nodes
 
     // Center node first
-    vector nodePolarCoord = vector(0, 0, secArea);
+    // vector nodePolarCoord = vector(0, 0, secArea, 0);
+    FixedList<scalar, 4> nodePolarCoord({0, 0, secArea, 0});
     nodesList_.append(nodePolarCoord);
     nodesNumber_++;
     rNodeList_.append(0); // Set up a list with unique node radial positions
@@ -162,8 +164,9 @@ void Foam::fv::wtActuatorSource::constructNodesList_rings()
         for (label nodeIterator = 0; nodeIterator < nodesRing; nodeIterator++)
         {
             thetaNode_rad = 2 * M_PI * (dTitaRing * (nodeIterator)) / 360;
-            vector nodePolarCoord = vector(rMedRing, thetaNode_rad, areaNodeRing);
-            nodesList_.append(nodePolarCoord); // (R, Theta, Area) list
+            // vector nodePolarCoord = vector(rMedRing, thetaNode_rad, areaNodeRing, thetaNode_rad);
+            FixedList<scalar, 4> nodePolarCoord({rMedRing, thetaNode_rad, areaNodeRing, thetaNode_rad});
+            nodesList_.append(nodePolarCoord); // (r, theta, area, theta_samp) list
         }
         rMedRing += ringThickness;
     }
@@ -171,6 +174,8 @@ void Foam::fv::wtActuatorSource::constructNodesList_rings()
 
     nodesPosList_.reserve(nodesNumber_);
     nodesCellId_.reserve(nodesNumber_);
+    nodesPosList_samp.reserve(nodesNumber_);
+    nodesCellId_samp.reserve(nodesNumber_);
 }
 
 void Foam::fv::wtActuatorSource::constructNodesList_lines()
@@ -179,9 +184,20 @@ void Foam::fv::wtActuatorSource::constructNodesList_lines()
 
     label nodesPerLine = readScalar(coeffs_.subOrEmptyDict("linesParam").lookup("nodesPerLine"));
     label linesNumber = readScalar(coeffs_.subOrEmptyDict("linesParam").lookup("linesNumber"));
+    samplingPosOld_ = coeffs_.subOrEmptyDict("linesParam").lookupOrDefault<bool>("samplingPosOld", false);
+
     Info << "       Nodes per line: " << nodesPerLine << endl;
     Info << "       Number of lines: " << linesNumber << endl;
-    
+    if (samplingPosOld_)
+    {
+        Info << "       Velocity sampling position: OLD " << endl;
+    } 
+    else
+    {
+        Info << "       Velocity sampling position: NEW " << endl;
+    }
+
+
     scalar delta = maxR_ / (nodesPerLine - 0.5);    // Distance between nodes in same line
     scalar dTitaRing = 2 * M_PI / linesNumber;         // Angle between lines [rad]
 
@@ -195,7 +211,8 @@ void Foam::fv::wtActuatorSource::constructNodesList_lines()
 
     // Central node first
     scalar areaNode = M_PI * pow(delta / 2, 2); // Area corresponding to central node
-    vector nodePolarCoord = vector(0, 0, areaNode);
+    // vector nodePolarCoord = vector(0, 0, areaNode);
+    FixedList<scalar, 4> nodePolarCoord({0, 0, areaNode, 0});
     nodesList_.append(nodePolarCoord);
     nodesNumber_++;
 
@@ -207,22 +224,23 @@ void Foam::fv::wtActuatorSource::constructNodesList_lines()
             scalar rNode = rNodeList_[i];
             areaNode = M_PI * (pow(rNode + (delta / 2), 2) - pow(rNode - (delta / 2), 2)) / linesNumber; // Area correspondinr to each nodes
             
-            vector nodePolarCoord = vector(rNode, thetaNode_rad, areaNode);
-            nodesList_.append(nodePolarCoord); // (R, Theta, Area) list
+            // vector nodePolarCoord = vector(rNode, thetaNode_rad, areaNode, thetaNode_rad);
+            FixedList<scalar, 4> nodePolarCoord({rNode, thetaNode_rad, areaNode, thetaNode_rad});
+            nodesList_.append(nodePolarCoord); // (r, theta, area, theta_samp) list
             nodesNumber_++;
         }
     }
 
     nodesPosList_.reserve(nodesNumber_);
     nodesCellId_.reserve(nodesNumber_);
+    nodesPosList_samp.reserve(nodesNumber_);
+    nodesCellId_samp.reserve(nodesNumber_);
 }
 
 void Foam::fv::wtActuatorSource::initializeEpsilonScaling()
 {
         Info << "    - epsilonScaling active" << endl;
         fileName scalingFileName;
-//         coeffs_.lookup("scalingTable") >> scalingFileName;
-// distribParam_(coeffs_.subOrEmptyDict("distribParam"));
 
         coeffs_.subOrEmptyDict("distribParam").lookup("scalingTable") >> scalingFileName;
 
@@ -278,7 +296,7 @@ void Foam::fv::wtActuatorSource::contructWTLists()
     }
 }
 
-scalar sumArea(const DynamicList<vector> &coordinates)
+scalar sumArea(const DynamicList<FixedList<scalar, 4>> &coordinates)
 {
     scalar nodesAreaSum = 0;
     forAll(coordinates, c)

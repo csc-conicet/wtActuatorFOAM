@@ -98,31 +98,44 @@ void Foam::fv::wtActuatorSource::constructNodesPosList()
     // label findSeed = -1;
     nodesPosList_.clear();
     nodesCellId_.clear();
+    nodesPosList_samp.clear();
+    nodesCellId_samp.clear();
 
     forAll(nodesList_, n)
     {
-        point cartCoord = computeNodePosition(nodesList_[n][0], nodesList_[n][1]);
-
+        point cartCoord = computeNodePosition(nodesList_[n][0], nodesList_[n][1], thetaMesh_rad);
         nodesPosList_.append(cartCoord);
 
         // if (movingAD_) findSeed = nodesCellId_old[n];
         // cellId = mesh().findCell(cartCoord, findSeed); // Add seed to search when moving. The first time there is no seed!!
         label cellId = mesh().findCell(cartCoord); // TODO: cellID may be -1 if cell is in other proc
         nodesCellId_.append(cellId);
+
+        if (samplingPosOld_)
+        {
+            cartCoord = computeNodePosition(nodesList_[n][0], nodesList_[n][3], thetaMeshOld_rad);
+            cellId = mesh().findCell(cartCoord); // TODO: cellID may be -1 if cell is in other proc
+        }
+
+        // Node sampling coordinates and cells
+        nodesPosList_samp.append(cartCoord);
+        nodesCellId_samp.append(cellId);
     }
 }
 
 void Foam::fv::wtActuatorSource::meshRotation_const(const scalar t, const scalar dt)
 {
+    thetaMeshOld_rad = thetaMesh_rad;
     thetaMesh_rad = thetaMesh_ini - omegaMesh_ * t; // Minus sign so positive Omega produces clockwise rotation 
 }
 
 void Foam::fv::wtActuatorSource::meshRotation_integ(const scalar t, const scalar dt)
 {
+    thetaMeshOld_rad = thetaMesh_rad;
     thetaMesh_rad = thetaMesh_rad - omega_ * dt; // Minus sign so positive Omega produces clockwise rotation 
 }
 
-point Foam::fv::wtActuatorSource::computeNodePosition(scalar rNode, scalar thetaNode_rad)
+point Foam::fv::wtActuatorSource::computeNodePosition(scalar rNode, scalar thetaNode_rad, scalar thetaMesh_rad)
 {
     // point Bi = vector(0, rNode * sin(thetaNode_rad), rNode * cos(thetaNode_rad));
     point Bi = vector(0, 
@@ -304,7 +317,7 @@ vector Foam::fv::wtActuatorSource::getNodeVelocity(
 ) const
 {
     vector U_node = vector(1e9, 1e9, 1e9);
-    label cellId = nodesCellId_[node];
+    label cellId = nodesCellId_samp[node]; // Use node sampling cell
 
     if (cellId != -1) // if the closer cell is in this procesor
     {
@@ -312,7 +325,7 @@ vector Foam::fv::wtActuatorSource::getNodeVelocity(
 
         if (gradU != NULL)
         {
-            vector dx = nodesPosList_[node] - mesh().cellCentres()[cellId];
+            vector dx = nodesPosList_samp[node] - mesh().cellCentres()[cellId];
             vector dU = dx & (*gradU)[cellId];
 
             U_node += dU;
@@ -522,7 +535,6 @@ void Foam::fv::wtActuatorSource::addActuatorForce(
 
     scalar Thrust_nodes = 0.0; // Thrust computed from nodes contribution
     scalar Torque_nodes = 0.0; // Torque computed from nodes contribution
-    // TODO: accumulate thrust and torque from forces applied in cells
 
     actuatorModel_->applyForce(U, rho, Usource, Thrust_nodes, Torque_nodes, flagWrite);
 

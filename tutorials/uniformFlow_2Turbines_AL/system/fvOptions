@@ -67,6 +67,8 @@ disk1
     {
         nodesPerLine                30;
         linesNumber                 3;
+        // samplingPosOld              false; // Actuator velocity sampling @ old position 
+                                           // [true (old position), false (new position - default)]
     }
 
     // Mesh rotation options
